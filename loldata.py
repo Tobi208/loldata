@@ -88,7 +88,9 @@ data = {
     'enemy_cs': [],
     'kills': [],
     'deaths': [],
-    'assists': []
+    'assists': [],
+    'my_team': [],
+    'enemy_team': []
 }
 
 # compiling timeline data
@@ -110,6 +112,50 @@ for frame in timeline['frames']:
                 data['deaths'].append((event['timestamp'], len(event['assistingParticipantIds'])))
             if my_participantId in event['assistingParticipantIds']:
                 data['assists'].append((event['timestamp'], len(event['assistingParticipantIds'])))
+
+# determine team ids
+if data['win'] == (match_stats['teams'][0]['win'] == 'Win'):
+    my_teamId = match_stats['teams'][0]['teamId']
+    enemy_teamId = match_stats['teams'][1]['teamId']
+else:
+    my_teamId = match_stats['teams'][1]['teamId']
+    enemy_teamId = match_stats['teams'][0]['teamId']
+# sort participants into teams
+my_team = []
+enemy_team = []
+for p in match_stats['participants']:
+    p_championId = p['championId']
+    if p_championId == my_championId:
+        continue
+    if p['teamId'] == my_teamId:
+        my_team.append((p['participantId'], p_championId))
+    else:
+        enemy_team.append((p['participantId'], p_championId))
+# parse team ids
+for participantId, championId in my_team:
+    for p in match_stats['participantIdentities']:
+        if p['participantId'] == participantId:
+            name = p['player']['summonerName']
+            break
+    for k, v in champions_data.items():
+        if v['key'] == str(championId):
+            champion = k
+            break
+    if champion == 'MonkeyKing':
+        champion = 'Wukong'
+    data['my_team'].append({'name': name, 'champion': champion})
+for participantId, championId in enemy_team:
+    for p in match_stats['participantIdentities']:
+        if p['participantId'] == participantId:
+            name = p['player']['summonerName']
+            break
+    for k, v in champions_data.items():
+        if v['key'] == str(championId):
+            champion = k
+            break
+    if champion == 'MonkeyKing':
+        champion = 'Wukong'
+    data['enemy_team'].append({'name': name, 'champion': champion})
 
 # update data
 if os.path.exists('data.json'):
